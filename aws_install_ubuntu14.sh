@@ -7,3 +7,4 @@ pip install numpy scipy
 pip install scikit-learn
 
 pip install gensim
+wget https://s3.amazonaws.com/mordecai-geo/GoogleNews-vectors-negative300.bin.gz
