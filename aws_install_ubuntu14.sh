@@ -11,7 +11,11 @@ pip install gensim
 wget http://mattmahoney.net/dc/text8.zip
 apt-get install -y unzip
 unzip text8.zip
+rm text8.zip
 python load_word2vec.py
+
+pip install --upgrade https://storage.googleapis.com/tensorflow/linux/cpu/tensorflow-0.12.1-cp27-none-linux_x86_64.whl
+pip install keras
 
 wget http://msvocds.blob.core.windows.net/coco2014/val2014.zip
 wget http://msvocds.blob.core.windows.net/annotations-1-0-3/captions_train-val2014.zip
@@ -20,6 +24,7 @@ unzip captions_train-val2014.zip
 rm val2014.zip
 rm captions_train-val2014.zip
 
-export TF_BINARY_URL=https://storage.googleapis.com/tensorflow/linux/cpu/tensorflow-0.12.1-cp27-none-linux_x86_64.whl
-pip install --upgrade $TF_BINARY_URL
-pip install keras
+pip install Cython
+git clone https://github.com/pdollar/coco.git
+cd coco/PythonAPI
+make
