@@ -7,3 +7,9 @@ print model.most_similar(positive=['woman', 'king'], negative=['man'], topn=2)
 print model.most_similar(['man'])
 
 print model.most_similar(['girl', 'father'], ['boy'], topn=3)
+
+v = model['man']
+
+print v.size, len(v), v[0]
+
+print model.similarity('woman', 'man')
