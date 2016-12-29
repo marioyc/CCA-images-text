@@ -13,3 +13,12 @@ v = model['man']
 print v.size, len(v), v[0]
 
 print model.similarity('woman', 'man')
+
+print len(model.vocab)
+
+cont = 0
+for k in model.vocab.keys():
+    print k
+    cont += 1
+    if cont == 5:
+        break
