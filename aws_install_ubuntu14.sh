@@ -17,6 +17,8 @@ wget http://msvocds.blob.core.windows.net/coco2014/val2014.zip
 wget http://msvocds.blob.core.windows.net/annotations-1-0-3/captions_train-val2014.zip
 unzip val2014.zip
 unzip captions_train-val2014.zip
+rm val2014.zip
+rm captions_train-val2014.zip
 
 export TF_BINARY_URL=https://storage.googleapis.com/tensorflow/linux/cpu/tensorflow-0.12.1-cp27-none-linux_x86_64.whl
 pip install --upgrade $TF_BINARY_URL
