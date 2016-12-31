@@ -28,3 +28,4 @@ pip install Cython
 git clone https://github.com/pdollar/coco.git
 cd coco/PythonAPI
 make
+python setup.py build_ext install
