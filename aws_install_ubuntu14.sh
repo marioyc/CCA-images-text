@@ -1,7 +1,7 @@
 apt-get update
 apt-get upgrade
 
-apt-get install -y python2.7-dev python-pip libblas-dev liblapack-dev gfortran
+apt-get install -y python2.7-dev python-pip libblas-dev liblapack-dev gfortran python-matplotlib
 
 pip install numpy scipy
 pip install scikit-learn
@@ -17,10 +17,13 @@ python load_word2vec.py
 pip install --upgrade https://storage.googleapis.com/tensorflow/linux/cpu/tensorflow-0.12.1-cp27-none-linux_x86_64.whl
 pip install keras
 
+wget http://msvocds.blob.core.windows.net/coco2014/train2014.zip
 wget http://msvocds.blob.core.windows.net/coco2014/val2014.zip
 wget http://msvocds.blob.core.windows.net/annotations-1-0-3/captions_train-val2014.zip
+unzip train2014.zip
 unzip val2014.zip
 unzip captions_train-val2014.zip
+rm train2014.zip
 rm val2014.zip
 rm captions_train-val2014.zip
 
