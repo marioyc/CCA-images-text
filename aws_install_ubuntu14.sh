@@ -14,8 +14,10 @@ unzip text8.zip
 rm text8.zip
 python load_word2vec.py
 
+apt-get install -y libhdf5-dev
 pip install --upgrade https://storage.googleapis.com/tensorflow/linux/cpu/tensorflow-0.12.1-cp27-none-linux_x86_64.whl
 pip install keras
+pip install h5py
 
 wget http://msvocds.blob.core.windows.net/coco2014/train2014.zip
 wget http://msvocds.blob.core.windows.net/coco2014/val2014.zip
