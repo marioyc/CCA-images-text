@@ -4,7 +4,8 @@ apt-get upgrade
 apt-get install -y python2.7-dev python-pip libblas-dev liblapack-dev gfortran python-matplotlib
 
 pip install numpy scipy
-pip install scikit-learn
+pip install progressbar2
+#pip install scikit-learn
 
 pip install gensim nltk
 python -m nltk.downloader punkt
