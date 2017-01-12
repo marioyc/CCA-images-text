@@ -3,7 +3,6 @@ from keras.applications.vgg16 import VGG16, preprocess_input
 from keras.preprocessing import image
 from pycocotools.coco import COCO
 from scipy.spatial import distance
-from sklearn.cross_decomposition import CCA
 import logging
 import progressbar
 import nltk
