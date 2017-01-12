@@ -38,8 +38,9 @@ print "Training: number of images =", len(img_words)
 
 model = word2vec.Word2Vec.load_word2vec_format('text.model.bin', binary=True)
 net = VGG16(weights='imagenet', include_top=False)
-img_list = []
-tag_list = []
+img_features = np.zeros((len(img_words), 512 * 7 * 7), dtype=np.float32)
+tag_features = np.zeros((len(img_words), 200), dtype=np.float32)
+pos = 0
 counter_not_in_vocab = 0
 print "Training: calculate image features, choose tag for each image"
 bar = progressbar.ProgressBar()
@@ -58,18 +59,22 @@ for image_id, words in bar(img_words.iteritems()):
         img = preprocess_input(img)
         features = net.predict(img)
         features = features.reshape(-1)
-        img_list.append(features)
-        tag_list.append(model[tag])
+        img_features[pos,:] = features
+        tag_features[pos,:] = model[tag]
     else:
         counter_not_in_vocab += 1
-img_features = np.array(img_list)
-np.save('img_features_train', img_features)
-del img_list
-tag_features = np.array(tag_list)
-np.save('tag_features_train', tag_features)
-del tag_list
 
-print "Images with no word in vocab:", counter_not_in_vocab
+    pos += 1
+    if pos % 5000:
+        print "Training: saving features calculated for the first {} images". format(pos)
+        np.save('img_features_train', img_features)
+        np.save('tag_features_train', tag_features)
+
+print "Training: saving features calculated for all the images"
+np.save('img_features_train', img_features)
+np.save('tag_features_train', tag_features)
+
+assert counter_not_in_vocab == 0
 
 print "Training: fit CCA"
 start = time.time()
