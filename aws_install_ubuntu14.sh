@@ -17,7 +17,18 @@ rm text8.zip
 python load_word2vec.py
 
 apt-get install -y libhdf5-dev
-pip install --upgrade https://storage.googleapis.com/tensorflow/linux/cpu/tensorflow-0.12.1-cp27-none-linux_x86_64.whl
+wget https://developer.nvidia.com/compute/cuda/8.0/prod/local_installers/cuda-repo-ubuntu1404-8-0-local_8.0.44-1_amd64-deb
+dpkg -i cuda-repo-ubuntu1404-8-0-local_8.0.44-1_amd64-deb
+rm cuda-repo-ubuntu1404-8-0-local_8.0.44-1_amd64-deb
+apt-get install -y cuda
+# need to download the Runtime Library and Developer Libray from https://developer.nvidia.com/cuDNN
+sudo dpkg -i libcudnn5_5.1.5-1+cuda8.0_amd64.deb
+#sudo dpkg -i libcudnn5-dev_5.1.5-1+cuda8.0_amd64.deb
+echo "\nexport CUDA_HOME=/usr/local/cuda" >> ~/.bashrc
+echo "\nexport PATH=$PATH:/usr/local/cuda/bin" >> ~/.bashrc
+echo "\nexport LD_LIBRARY_PATH=$LD_LIBRARY_PATH:/usr/local/cuda/lib64" >> ~/.bashrc
+pip install --upgrade https://storage.googleapis.com/tensorflow/linux/gpu/tensorflow_gpu-0.12.1-cp27-none-linux_x86_64.whl
+
 pip install keras
 pip install h5py
 
