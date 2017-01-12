@@ -4,6 +4,7 @@ from keras.preprocessing import image
 from pycocotools.coco import COCO
 from scipy.spatial import distance
 from sklearn.cross_decomposition import CCA
+import logging
 import progressbar
 import nltk
 import numpy as np
@@ -11,13 +12,15 @@ import time
 
 import cca
 
+logging.basicConfig(filename='cca.log', format='%(asctime)s %(message)s', level=logging.INFO)
+
 annFile = 'annotations/captions_train2014.json'
 coco_train = COCO(annFile)
 ids = coco_train.getAnnIds()
 annotations = coco_train.loadAnns(ids)
 
 cont = {}
-print "Count word frequencies, number of annotations =", len(annotations)
+logging.info('Count word frequencies, number of annotations = %d', len(annotations))
 img_words = {}
 bar = progressbar.ProgressBar()
 for ann in bar(annotations):
@@ -34,7 +37,7 @@ for ann in bar(annotations):
             cont[w] += 1
         else:
             cont[w] = 1
-print "Training: number of images =", len(img_words)
+logging.info('Training: number of images = %d', len(img_words))
 
 model = word2vec.Word2Vec.load_word2vec_format('text.model.bin', binary=True)
 net = VGG16(weights='imagenet', include_top=False)
@@ -42,7 +45,7 @@ img_features = np.zeros((len(img_words), 512 * 7 * 7), dtype=np.float32)
 tag_features = np.zeros((len(img_words), 200), dtype=np.float32)
 pos = 0
 counter_not_in_vocab = 0
-print "Training: calculate image features, choose tag for each image"
+logging.info('Training: calculate image features, choose tag for each image')
 bar = progressbar.ProgressBar()
 for image_id, words in bar(img_words.iteritems()):
     file_name = coco_train.imgs[image_id]['file_name']
@@ -50,7 +53,7 @@ for image_id, words in bar(img_words.iteritems()):
 
     tag, best = '', -1
     for w in words:
-        if w in model.vocab and (best == -1 or cont.get(w,0) < best):
+        if w in model.wv.vocab and (best == -1 or cont.get(w,0) < best):
             tag, best = w, cont.get(w,0)
 
     if best != -1:
@@ -65,24 +68,24 @@ for image_id, words in bar(img_words.iteritems()):
         counter_not_in_vocab += 1
 
     pos += 1
-    if pos % 5000:
-        print "Training: saving features calculated for the first {} images". format(pos)
-        np.save('img_features_train', img_features)
-        np.save('tag_features_train', tag_features)
+    if pos % 5000 == 0:
+        logging.info('Training: saving features calculated for the first %d images', pos)
+        np.save('img_features_train', img_features[:pos,:])
+        np.save('tag_features_train', tag_features[:pos,:])
 
-print "Training: saving features calculated for all the images"
+logging.info('Training: saving features calculated for all the images')
 np.save('img_features_train', img_features)
 np.save('tag_features_train', tag_features)
 
 assert counter_not_in_vocab == 0
 
-print "Training: fit CCA"
+logging.info('Training: fit CCA')
 start = time.time()
 W_img, W_tag = cca.cca(img_features, tag_features, numCC=15)
 np.save('W_img', W_img)
 np.save('W_tag', W_tag)
 end = time.time()
-print 'Time: {0:.4f}m'.format((end - start) / 60)
+logging.info('Time: %.4fm', (end - start) / 60)
 
 annFile = 'annotations/captions_val2014.json'
 coco_val = COCO(annFile)
@@ -91,7 +94,7 @@ annotations = coco_val.loadAnns(ids)
 
 img_list = []
 img_ids = []
-print "Testing: loading images and calculate image embeddings"
+logging.info('Testing: loading images and calculate image embeddings')
 for ann in annotations[:10]:
     file_name = coco_val.imgs[ ann['image_id'] ]['file_name']
     img = image.load_img('val2014/' + file_name, target_size=(224, 224))
@@ -107,12 +110,12 @@ img_features = np.array(img_list)
 
 tag_keys = []
 tag_list = []
-print "Testing: get embedding of all words in the vocabulary"
-for k in model.vocab.keys():
+logging.info('Testing: get embedding of all words in the vocabulary')
+for k in model.wv.vocab.keys():
     tag_keys.append(k)
     tag_list.append(model[k])
 
-print "Testing: prediction"
+logging.info('Testing: prediction')
 N_RESULTS = 10
 pos = 0
 bar = progressbar.ProgressBar()
