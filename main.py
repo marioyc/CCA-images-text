@@ -63,10 +63,10 @@ for image_id, words in bar(img_words.iteritems()):
     else:
         counter_not_in_vocab += 1
 img_features = np.array(img_list)
-print img_features.shape
+np.save('img_features_train', img_features)
 del img_list
 tag_features = np.array(tag_list)
-print tag_features.shape
+np.save('tag_features_train', tag_features)
 del tag_list
 
 print "Images with no word in vocab:", counter_not_in_vocab
