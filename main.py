@@ -4,6 +4,7 @@ from keras.preprocessing import image
 from pycocotools.coco import COCO
 from scipy.spatial import distance
 import logging
+import os
 import progressbar
 import nltk
 import numpy as np
@@ -40,43 +41,53 @@ logging.info('Training: number of images = %d', len(img_words))
 
 model = word2vec.Word2Vec.load_word2vec_format('text.model.bin', binary=True)
 net = VGG16(weights='imagenet', include_top=False)
-img_features = np.zeros((len(img_words), 512 * 7 * 7), dtype=np.float32)
-tag_features = np.zeros((len(img_words), 200), dtype=np.float32)
-pos = 0
-counter_not_in_vocab = 0
-logging.info('Training: calculate image features, choose tag for each image')
-bar = progressbar.ProgressBar()
-for image_id, words in bar(img_words.iteritems()):
-    file_name = coco_train.imgs[image_id]['file_name']
-    img = image.load_img('train2014/' + file_name, target_size=(224, 224))
 
-    tag, best = '', -1
-    for w in words:
-        if w in model.wv.vocab and (best == -1 or cont.get(w,0) < best):
-            tag, best = w, cont.get(w,0)
+def calc_features():
+    img_features = np.zeros((len(img_words), 512 * 7 * 7), dtype=np.float32)
+    tag_features = np.zeros((len(img_words), 200), dtype=np.float32)
+    pos = 0
+    counter_not_in_vocab = 0
+    logging.info('Training: calculate image features, choose tag for each image')
+    bar = progressbar.ProgressBar()
+    for image_id, words in bar(img_words.iteritems()):
+        file_name = coco_train.imgs[image_id]['file_name']
+        img = image.load_img('train2014/' + file_name, target_size=(224, 224))
 
-    if best != -1:
-        img = image.img_to_array(img)
-        img = np.expand_dims(img, axis=0)
-        img = preprocess_input(img)
-        features = net.predict(img)
-        features = features.reshape(-1)
-        img_features[pos,:] = features
-        tag_features[pos,:] = model[tag]
-    else:
-        counter_not_in_vocab += 1
+        tag, best = '', -1
+        for w in words:
+            if w in model.wv.vocab and (best == -1 or cont.get(w,0) < best):
+                tag, best = w, cont.get(w,0)
 
-    pos += 1
-    if pos % 5000 == 0:
-        logging.info('Training: saving features calculated for the first %d images', pos)
-        np.save('img_features_train', img_features[:pos,:])
-        np.save('tag_features_train', tag_features[:pos,:])
+        if best != -1:
+            img = image.img_to_array(img)
+            img = np.expand_dims(img, axis=0)
+            img = preprocess_input(img)
+            features = net.predict(img)
+            features = features.reshape(-1)
+            img_features[pos,:] = features
+            tag_features[pos,:] = model[tag]
+        else:
+            counter_not_in_vocab += 1
 
-logging.info('Training: saving features calculated for all the images')
-np.save('img_features_train', img_features)
-np.save('tag_features_train', tag_features)
+        pos += 1
+        if pos % 10000 == 0:
+            logging.info('Training: saving features calculated for the first %d images', pos)
+            np.save('img_features_train', img_features[:pos,:])
+            np.save('tag_features_train', tag_features[:pos,:])
 
-assert counter_not_in_vocab == 0
+    logging.info('Training: saving features calculated for all the images')
+    np.save('img_features_train', img_features)
+    np.save('tag_features_train', tag_features)
+
+    assert counter_not_in_vocab == 0
+
+    return img_features, tag_features
+
+if os.path.isfile('img_features_train.npy'):
+    img_features = np.load('img_features_train.npy')
+    tag_features = np.load('tag_features_train.npy')
+else:
+    img_features, tag_features = calc_features()
 
 logging.info('Training: fit CCA')
 start = time.time()
