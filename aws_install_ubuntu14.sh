@@ -20,6 +20,7 @@ apt-get install -y libhdf5-dev
 wget https://developer.nvidia.com/compute/cuda/8.0/prod/local_installers/cuda-repo-ubuntu1404-8-0-local_8.0.44-1_amd64-deb
 dpkg -i cuda-repo-ubuntu1404-8-0-local_8.0.44-1_amd64-deb
 rm cuda-repo-ubuntu1404-8-0-local_8.0.44-1_amd64-deb
+apt-get update
 apt-get install -y cuda
 # need to download the Runtime Library and Developer Libray from https://developer.nvidia.com/cuDNN
 sudo dpkg -i libcudnn5_5.1.5-1+cuda8.0_amd64.deb
