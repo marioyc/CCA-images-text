@@ -3,6 +3,7 @@ from keras.applications.vgg16 import VGG16, preprocess_input
 from keras.preprocessing import image
 from pycocotools.coco import COCO
 from scipy.spatial import distance
+from sklearn.externals import joblib
 import logging
 import os
 import numpy as np
@@ -12,6 +13,9 @@ logging.basicConfig(filename='cca.log', format='%(asctime)s %(message)s', level=
 
 model = word2vec.Word2Vec.load_word2vec_format('text.model.bin', binary=True)
 net = VGG16(weights='imagenet', include_top=False)
+
+assert os.path.isfile('pca_img.pkl')
+pca = joblib.load('pca_img.pkl')
 
 assert os.path.isfile('W_img.npy')
 W_img = np.load('W_img.npy')
@@ -42,8 +46,7 @@ for image_id, info in img_info.iteritems():
     img = preprocess_input(img)
     features = net.predict(img)
     features = features.reshape(img.shape[0], - 1)
-    features = features[:,:5000]
-    img_features[pos,:] = features
+    img_features[pos,:] = pca.transform(features)
     img_ids.append(image_id)
     pos += 1
     if pos == 10:
@@ -61,12 +64,13 @@ N_RESULTS = 10
 pos = 0
 for img in img_features:
    v_img = np.dot(img, W_img)
-   scores = []
-   for tag in tag_list:
+   scores = np.zeros(len(tag_list))
+   for i in range(len(tag_list)):
+       tag = tag_list[i]
        v_tag = np.dot(tag, W_tag)
-       scores.append(1 - distance.cosine(v_img, v_tag))
-   #print scores[:N_RESULTS]
-   index = np.argsort(scores)[::-1]
+       scores[i] = distance.euclidean(v_img, v_tag)
+   index = np.argsort(scores)
+   print scores[index][:N_RESULTS]
    print coco_val.imgs[ img_ids[pos] ]['flickr_url']
    results = []
    for i in range(N_RESULTS):
