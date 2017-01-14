@@ -1,6 +1,8 @@
+from sklearn.decomposition import PCA, IncrementalPCA
+from sklearn.externals import joblib
 import argparse
-import os
 import numpy as np
+import os
 import time
 
 import cca
@@ -18,7 +20,13 @@ assert os.path.isfile('tag_features_train.npy')
 print 'Loading tag features file'
 tag_features = np.load('tag_features_train.npy')
 
-img_features = img_features[:,:5000]
+print 'Training: PCA of image features'
+start = time.time()
+pca = IncrementalPCA(n_components=500, batch_size=32)
+pca.fit_transform(img_features)
+end = time.time()
+print 'Time: {0:.4f}m'.format((end - start) / 60)
+joblib.dump(pca, 'pca_img.pkl')
 
 print 'Training: fit CCA'
 start = time.time()
