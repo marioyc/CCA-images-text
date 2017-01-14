@@ -15,61 +15,74 @@ annFile = 'annotations/captions_train2014.json'
 coco_train = COCO(annFile)
 ids = coco_train.getAnnIds()
 annotations = coco_train.loadAnns(ids)
+img_count = {}
+img_captions = {}
 
 def count_words():
-    cont = {}
+    stop = set(nltk.corpus.stopwords.words('english'))
     logging.info('Count word frequencies, number of annotations = %d', len(annotations))
-    img_words = {}
     bar = progressbar.ProgressBar()
     for ann in bar(annotations):
         caption = ann['caption']
         image_id = ann['image_id']
+        tokens = nltk.word_tokenize(caption)
+        tokens = [w.lower() for w in tokens]
+        tokens = [w for w in tokens if not w in stop]
 
-        if image_id not in img_words:
-            img_words[image_id] = set()
+        if image_id not in img_count:
+            img_count[image_id] = {}
+            img_captions[image_id] = [tokens]
+        else:
+            img_captions[image_id].append(tokens)
 
-        for w in nltk.word_tokenize(caption):
-            w = w.lower()
-            img_words[image_id].add(w)
-            if w in cont:
-                cont[w] += 1
+        for w in tokens:
+            if w in img_count[image_id]:
+                img_count[image_id][w] += 1
             else:
-                cont[w] = 1
+                img_count[image_id][w] = 1
 
-    logging.info('Training: number of images = %d', len(img_words))
-
-    pickle.dump(cont, open('cont.pkl', 'wb'))
-    return cont
+    logging.info('Training: number of images = %d', len(img_count))
 
 def calc_features():
     model = word2vec.Word2Vec.load_word2vec_format('text.model.bin', binary=True)
     net = VGG16(weights='imagenet', include_top=False)
-    img_features = np.zeros((len(img_words), 512 * 7 * 7), dtype=np.float32)
-    tag_features = np.zeros((len(img_words), 200), dtype=np.float32)
-
+    img_features = np.zeros((len(img_count), 512 * 7 * 7), dtype=np.float32)
+    tag_features = np.zeros((len(img_count), 200), dtype=np.float32)
+    f = file('train_tags.txt', 'w')
     pos = 0
-    counter_not_in_vocab = 0
     logging.info('Training: calculate image features, choose tag for each image')
     bar = progressbar.ProgressBar()
-    for image_id, words in bar(img_words.iteritems()):
+    for image_id, words in bar(img_count.iteritems()):
         file_name = coco_train.imgs[image_id]['file_name']
         img = image.load_img('train2014/' + file_name, target_size=(224, 224))
 
-        tag, best = '', -1
+        words_list = []
+        words_count = []
         for w in words:
-            if w in model.wv.vocab and (best == -1 or cont.get(w,0) < best):
-                tag, best = w, cont.get(w,0)
+            if w in model.wv.vocab:
+                words_list.append(w)
+                words_count.append(img_count[image_id][w])
 
-        if best != -1:
-            img = image.img_to_array(img)
-            img = np.expand_dims(img, axis=0)
-            img = preprocess_input(img)
-            features = net.predict(img)
-            features = features.reshape(-1)
-            img_features[pos,:] = features
-            tag_features[pos,:] = model[tag]
-        else:
-            counter_not_in_vocab += 1
+        words_count = np.array(words_count)
+        index = np.argsort(words_count)[::-1]
+
+        f.write(coco_train.imgs[image_id]['flickr_url'] + '\n')
+        f.write(words_list[ index[0] ] + '\n')
+        #for i in range(0,min(5,len(index))):
+        #    ind = index[i]
+        #    print words_list[ind], words_count[ind]
+        #for caption in img_captions[image_id]:
+        #    print caption
+
+        img = image.img_to_array(img)
+        img = np.expand_dims(img, axis=0)
+        img = preprocess_input(img)
+        features = net.predict(img)
+        features = features.reshape(-1)
+        img_features[pos,:] = features
+
+        ind = index[0]
+        tag_features[pos,:] = model[ words_list[ind] ]
 
         pos += 1
         if pos % 10000 == 0:
@@ -81,14 +94,8 @@ def calc_features():
     np.save('img_features_train', img_features)
     np.save('tag_features_train', tag_features)
 
-    assert counter_not_in_vocab == 0
+count_words()
 
-    return img_features, tag_features
-
-if os.path.isfile('cont.pkl'):
-    cont = pickle.load(open('cont.pkl', 'rb'))
-else:
-    cont = count_words()
-
+calc_features()
 if not os.path.isfile('img_features_train.npy'):
-    img_features, tag_features = calc_features()
+    calc_features()
