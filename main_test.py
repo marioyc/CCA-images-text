@@ -4,6 +4,7 @@ from keras.preprocessing import image
 from pycocotools.coco import COCO
 from scipy.spatial import distance
 from sklearn.externals import joblib
+import argparse
 import logging
 import numpy as np
 import os
@@ -11,6 +12,13 @@ import pickle
 import time
 
 logging.basicConfig(filename='cca.log', format='%(asctime)s %(message)s', level=logging.INFO)
+
+parser = argparse.ArgumentParser()
+parser.add_argument('--pcaFile', default='pca_img', type=str)
+parser.add_argument('--imageMatrix', default='W_img', type=str)
+parser.add_argument('--tagMatrix', default='W_tag', type=str)
+parser.add_argument('--tagsFile', default='test_tags', type=str)
+args = parser.parse_args()
 
 annFile = 'annotations/captions_val2014.json'
 coco_val = COCO(annFile)
@@ -23,14 +31,14 @@ net.layers.pop()
 net.outputs = [net.layers[-1].output]
 net.layers[-1].outbound_nodes = []
 
-assert os.path.isfile('pca_img.pkl')
-pca = joblib.load('pca_img.pkl')
+assert os.path.isfile(args.pcaFile + '.pkl')
+pca = joblib.load(args.pcaFile + '.pkl')
 
-assert os.path.isfile('W_img.npy')
-W_img = np.load('W_img.npy')
+assert os.path.isfile(args.imageMatrix + '.npy')
+W_img = np.load(args.imageMatrix + '.npy')
 
-assert os.path.isfile('W_tag.npy')
-W_tag = np.load('W_tag.npy')
+assert os.path.isfile(args.tagMatrix + '.npy')
+W_tag = np.load(args.tagMatrix + '.npy')
 
 assert os.path.isfile('possible_tags.pkl')
 possible_tags = pickle.load(open('possible_tags.pkl', 'rb'))
@@ -52,7 +60,7 @@ N_TEST = len(img_info)
 logging.info('Testing: number of images = %d', N_TEST)
 
 N_RESULTS = 5
-f = open('test_tags.txt', 'w')
+f = open(args.tagsFile + '.txt', 'w')
 img_ids = []
 pos = 0
 logging.info('Testing: prediction')
@@ -81,5 +89,3 @@ for image_id, info in img_info.iteritems():
         f.write(tag_keys[ index[i] ] + '\n')
 
     pos += 1
-    if pos == 10:
-        break
