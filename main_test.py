@@ -5,8 +5,9 @@ from pycocotools.coco import COCO
 from scipy.spatial import distance
 from sklearn.externals import joblib
 import logging
-import os
 import numpy as np
+import os
+import pickle
 import time
 
 logging.basicConfig(filename='cca.log', format='%(asctime)s %(message)s', level=logging.INFO)
@@ -17,7 +18,10 @@ ids = coco_val.getAnnIds()
 annotations = coco_val.loadAnns(ids)
 
 model = word2vec.Word2Vec.load_word2vec_format('text.model.bin', binary=True)
-net = VGG16(weights='imagenet', include_top=False)
+net = VGG16(weights='imagenet', include_top=True)
+net.layers.pop()
+net.outputs = [net.layers[-1].output]
+net.layers[-1].outbound_nodes = []
 
 assert os.path.isfile('pca_img.pkl')
 pca = joblib.load('pca_img.pkl')
@@ -28,12 +32,15 @@ W_img = np.load('W_img.npy')
 assert os.path.isfile('W_tag.npy')
 W_tag = np.load('W_tag.npy')
 
+assert os.path.isfile('possible_tags.pkl')
+possible_tags = pickle.load(open('possible_tags.pkl', 'rb'))
+
 tag_keys = []
-tag_list = []
-logging.info('Testing: get embedding of all words in the vocabulary')
-for k in model.wv.vocab.keys():
-    tag_keys.append(k)
-    tag_list.append(model[k])
+tag_features_list = []
+logging.info('Testing: get embedding of all possible tags')
+for tag in possible_tags:
+    tag_keys.append(tag)
+    tag_features_list.append(model[tag])
 
 img_info = {}
 logging.info('Testing: get all different image ids')
@@ -44,7 +51,7 @@ for ann in annotations:
 N_TEST = len(img_info)
 logging.info('Testing: number of images = %d', N_TEST)
 
-N_RESULTS = 10
+N_RESULTS = 5
 f = open('test_tags.txt', 'w')
 img_ids = []
 pos = 0
@@ -62,9 +69,9 @@ for image_id, info in img_info.iteritems():
     img_ids.append(image_id)
 
     v_img = np.dot(img_features, W_img)
-    scores = np.zeros(len(tag_list))
-    for i in range(len(tag_list)):
-        tag_features = tag_list[i]
+    scores = np.zeros(len(tag_features_list))
+    for i in range(len(tag_features_list)):
+        tag_features = tag_features_list[i]
         v_tag = np.dot(tag_features, W_tag)
         scores[i] = distance.euclidean(v_img, v_tag)
 
