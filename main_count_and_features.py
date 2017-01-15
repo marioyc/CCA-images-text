@@ -50,8 +50,9 @@ def calc_features():
     net.outputs = [net.layers[-1].output]
     net.layers[-1].outbound_nodes = []
 
-    img_features = np.zeros((len(img_count), 4096), dtype=np.float32)
-    tag_features = np.zeros((len(img_count), 200), dtype=np.float32)
+    TAGS_PER_IMAGE = 2
+    img_features = np.zeros((TAGS_PER_IMAGE * len(img_count), 4096), dtype=np.float32)
+    tag_features = np.zeros((TAGS_PER_IMAGE * len(img_count), 200), dtype=np.float32)
 
     possible_tags = set()
 
@@ -74,7 +75,8 @@ def calc_features():
         index = np.argsort(words_count)[::-1]
 
         f.write(coco_train.imgs[image_id]['flickr_url'] + '\n')
-        f.write(words_list[ index[0] ] + '\n')
+        for i in range(TAGS_PER_IMAGE):
+            f.write(words_list[ index[i] ] + '\n')
         #for i in range(0,min(5,len(index))):
         #    ind = index[i]
         #    print words_list[ind], words_count[ind]
@@ -86,11 +88,12 @@ def calc_features():
         img = preprocess_input(img)
         features = net.predict(img)
         features = features.reshape(-1)
-        img_features[pos,:] = features
 
-        ind = index[0]
-        tag_features[pos,:] = model[ words_list[ind] ]
-        possible_tags.add(words_list[ind])
+        for i in range(TAGS_PER_IMAGE):
+            ind = index[i]
+            img_features[TAGS_PER_IMAGE * pos + i,:] = features
+            tag_features[TAGS_PER_IMAGE * pos + i,:] = model[ words_list[ind] ]
+            possible_tags.add(words_list[ind])
 
         pos += 1
         if pos % 10000 == 0:
@@ -101,6 +104,8 @@ def calc_features():
     logging.info('Training: saving features calculated for all the images')
     np.save('img_features_train', img_features)
     np.save('tag_features_train', tag_features)
+
+    logging.info('Training: number of possible tags = %d', len(possible_tags))
     pickle.dump(possible_tags, open('possible_tags.pkl', 'wb'))
 
 count_words()
