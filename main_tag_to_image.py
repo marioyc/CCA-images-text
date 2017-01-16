@@ -13,17 +13,6 @@ import time
 logging.basicConfig(filename='cca.log', format='%(asctime)s %(message)s', level=logging.INFO)
 
 def calc_testing_image_features():
-    annFile = 'annotations/captions_val2014.json'
-    coco_val = COCO(annFile)
-    ids = coco_val.getAnnIds()
-    annotations = coco_val.loadAnns(ids)
-
-    img_info = {}
-    logging.info('Testing: get all different image ids')
-    for ann in annotations:
-        image_id = ann['image_id']
-        img_info[image_id] = coco_val.imgs[image_id]
-
     N_TEST = len(img_info)
     logging.info('Testing: number of image = %d', N_TEST)
 
@@ -57,14 +46,27 @@ def calc_testing_image_features():
         pos += 1
 
     np.save('img_features_testing', img_features)
-    pickle.dump(img_info, open('img_info_testing.pkl', 'wb'))
-    return img_features, img_info
+    return img_features
+
+annFile = 'annotations/captions_val2014.json'
+coco_val = COCO(annFile)
+ids = coco_val.getAnnIds()
+annotations = coco_val.loadAnns(ids)
+
+img_info = {}
+logging.info('Testing: get all different image ids')
+for ann in annotations:
+    image_id = ann['image_id']
+    img_info[image_id] = coco_val.imgs[image_id]
+
+img_ids = []
+for image_id, info in img_info.iteritems():
+    img_ids.append(image_id)
 
 if not os.path.isfile('img_features_testing.npy'):
-    img_features, img_info = calc_testing_image_features()
+    img_features = calc_testing_image_features()
 else:
     img_features = np.load('img_features_testing.npy')
-    img_info = pickle.load(open('img_info_testing.pkl', 'rb'))
 
 N_RESULTS = 10
 tags = ['cat', 'desktop', 'kitchen', 'group', 'beach', 'food', 'building', 'tower', 'book', 'computer', 'television']
@@ -73,10 +75,6 @@ model = word2vec.Word2Vec.load_word2vec_format('text.model.bin', binary=True)
 
 assert os.path.isfile('W_tag.npy')
 W_tag = np.load('W_tag.npy')
-
-img_ids = []
-for image_id, info in img_info.iteritems():
-    img_ids.append(image_id)
 
 f = open('test_t2i.txt', 'w')
 for tag in tags:
