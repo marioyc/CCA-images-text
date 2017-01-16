@@ -64,6 +64,7 @@ f = open(args.tagsFile + '.txt', 'w')
 img_ids = []
 pos = 0
 logging.info('Testing: prediction')
+start = time.time()
 for image_id, info in img_info.iteritems():
     file_name = info['file_name']
     img = image.load_img('val2014/' + file_name, target_size=(224, 224))
@@ -89,3 +90,5 @@ for image_id, info in img_info.iteritems():
         f.write(tag_keys[ index[i] ] + '\n')
 
     pos += 1
+end = time.time()
+logging.info('Time: %.4fm', (end - start) / 60)
