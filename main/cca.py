@@ -1,13 +1,13 @@
 from scipy.linalg import eigh
 import numpy as np
-import pycuda.autoinit
-import pycuda.gpuarray as gpuarray
-import skcuda.linalg as linalg
-
-linalg.init()
 
 def correlations(X, Y, useGPU):
     if useGPU:
+        import pycuda.autoinit
+        import pycuda.gpuarray as gpuarray
+        import skcuda.linalg as linalg
+        linalg.init()
+
         X_gpu = gpuarray.to_gpu(X)
         XT_gpu = linalg.transpose(X_gpu)
         cxx = linalg.mdot(XT_gpu, X_gpu).get()
