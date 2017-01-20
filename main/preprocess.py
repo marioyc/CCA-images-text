@@ -10,19 +10,6 @@ import progressbar
 import nltk
 import numpy as np
 
-logging.basicConfig(filename='cca.log', format='%(asctime)s %(message)s', level=logging.INFO)
-
-parser = argparse.ArgumentParser()
-parser.add_argument('--tagsPerImage', default=2, type=int, help='amount of tags per image')
-args = parser.parse_args()
-
-annFile = 'annotations/captions_train2014.json'
-coco_train = COCO(annFile)
-ids = coco_train.getAnnIds()
-annotations = coco_train.loadAnns(ids)
-img_count = {}
-img_captions = {}
-
 def count_words():
     stop = set(nltk.corpus.stopwords.words('english'))
     logging.info('Count word frequencies, number of annotations = %d', len(annotations))
@@ -56,6 +43,7 @@ def calc_features():
     net.layers[-1].outbound_nodes = []
 
     TAGS_PER_IMAGE = args.tagsPerImage
+    print 'Tags per image', TAGS_PER_IMAGE
     img_features = np.zeros((TAGS_PER_IMAGE * len(img_count), 4096), dtype=np.float32)
     tag_features = np.zeros((TAGS_PER_IMAGE * len(img_count), 200), dtype=np.float32)
 
@@ -103,17 +91,29 @@ def calc_features():
         pos += 1
         if pos % 20000 == 0:
             logging.info('Training: saving features calculated for the first %d images', pos)
-            np.save('img_features_train', img_features[:pos,:])
-            np.save('tag_features_train', tag_features[:pos,:])
+            np.savez_compressed('train_features', img_features=img_features[:TAGS_PER_IMAGE * pos,:], tag_features=tag_features[:TAGS_PER_IMAGE * pos,:])
 
     logging.info('Training: saving features calculated for all the images')
-    np.save('img_features_train', img_features)
-    np.save('tag_features_train', tag_features)
+    np.savez_compressed('train_features', img_features=img_features, tag_features=tag_features)
 
     logging.info('Training: number of possible tags = %d', len(possible_tags))
     pickle.dump(possible_tags, open('possible_tags.pkl', 'wb'))
 
-count_words()
 
-#if not os.path.isfile('img_features_train.npy'):
-calc_features()
+if __name__ == "__main__":
+    logging.basicConfig(filename='cca.log', format='%(asctime)s %(message)s', level=logging.INFO)
+
+    parser = argparse.ArgumentParser()
+    parser.add_argument('--tagsPerImage', default=2, type=int, help='amount of tags per image')
+    args = parser.parse_args()
+
+    annFile = 'annotations/captions_train2014.json'
+    coco_train = COCO(annFile)
+    ids = coco_train.getAnnIds()
+    annotations = coco_train.loadAnns(ids)
+
+    img_count = {}
+    img_captions = {}
+    count_words()
+
+    calc_features()
